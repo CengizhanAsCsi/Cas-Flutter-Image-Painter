@@ -1,10 +1,16 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:resizable_widget/resizable_widget.dart';
 
 import 'package:flutter/material.dart' hide Image;
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:uuid/uuid.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
+import 'package:image/image.dart' as img;
 
 import '_controller.dart';
 import '_image_painter.dart';
@@ -14,6 +20,7 @@ import 'widgets/_color_widget.dart';
 import 'widgets/_mode_widget.dart';
 import 'widgets/_range_slider.dart';
 import 'widgets/_text_dialog.dart';
+import 'widgets/directory_helper.dart';
 
 export '_image_painter.dart';
 
@@ -474,8 +481,7 @@ class ImagePainterState extends State<ImagePainter> {
 
   bool get isEdited => _controller.paintHistory.isNotEmpty;
 
-  Size get imageSize =>
-      Size(_image?.width.toDouble() ?? 0, _image?.height.toDouble() ?? 0);
+  Size get imageSize => Size(_image?.width.toDouble() ?? 0, _image?.height.toDouble() ?? 0);
 
   ///Converts the incoming image type from constructor to [ui.Image]
   Future<void> _resolveAndConvertImage() async {
@@ -537,8 +543,7 @@ class ImagePainterState extends State<ImagePainter> {
   Future<ui.Image> _loadNetworkImage(String path) async {
     final completer = Completer<ImageInfo>();
     final img = NetworkImage(path);
-    img.resolve(const ImageConfiguration()).addListener(
-        ImageStreamListener((info, _) => completer.complete(info)));
+    img.resolve(const ImageConfiguration()).addListener(ImageStreamListener((info, _) => completer.complete(info)));
     final imageInfo = await completer.future;
     _isLoaded.value = true;
     return imageInfo.image;
@@ -651,14 +656,12 @@ class ImagePainterState extends State<ImagePainter> {
               children: [
                 IconButton(
                   tooltip: textDelegate.undo,
-                  icon: widget.undoIcon ??
-                      Icon(Icons.reply, color: Colors.grey[700]),
+                  icon: widget.undoIcon ?? Icon(Icons.reply, color: Colors.grey[700]),
                   onPressed: () => _controller.undo(),
                 ),
                 IconButton(
                   tooltip: textDelegate.clearAllProgress,
-                  icon: widget.clearAllIcon ??
-                      Icon(Icons.clear, color: Colors.grey[700]),
+                  icon: widget.clearAllIcon ?? Icon(Icons.clear, color: Colors.grey[700]),
                   onPressed: () => _controller.clear(),
                 ),
               ],
@@ -669,8 +672,7 @@ class ImagePainterState extends State<ImagePainter> {
   }
 
   _scaleStartGesture(ScaleStartDetails onStart) {
-    final _zoomAdjustedOffset =
-        _transformationController.toScene(onStart.localFocalPoint);
+    final _zoomAdjustedOffset = _transformationController.toScene(onStart.localFocalPoint);
     if (!widget.isSignature) {
       _controller.setStart(_zoomAdjustedOffset);
       _controller.addOffsets(_zoomAdjustedOffset);
@@ -679,8 +681,7 @@ class ImagePainterState extends State<ImagePainter> {
 
   ///Fires while user is interacting with the screen to record painting.
   void _scaleUpdateGesture(ScaleUpdateDetails onUpdate) {
-    final _zoomAdjustedOffset =
-        _transformationController.toScene(onUpdate.localFocalPoint);
+    final _zoomAdjustedOffset = _transformationController.toScene(onUpdate.localFocalPoint);
     _controller.setInProgress(true);
     if (_controller.start == null) {
       _controller.setStart(_zoomAdjustedOffset);
@@ -690,24 +691,18 @@ class ImagePainterState extends State<ImagePainter> {
       _controller.addOffsets(_zoomAdjustedOffset);
     }
     if (_controller.onTextUpdateMode) {
-      _controller.paintHistory
-          .lastWhere((element) => element.mode == PaintMode.text)
-          .offsets = [_zoomAdjustedOffset];
+      _controller.paintHistory.lastWhere((element) => element.mode == PaintMode.text).offsets = [_zoomAdjustedOffset];
     }
   }
 
   ///Fires when user stops interacting with the screen.
   void _scaleEndGesture(ScaleEndDetails onEnd) {
     _controller.setInProgress(false);
-    if (_controller.start != null &&
-        _controller.end != null &&
-        (_controller.mode == PaintMode.freeStyle)) {
+    if (_controller.start != null && _controller.end != null && (_controller.mode == PaintMode.freeStyle)) {
       _controller.addOffsets(null);
       _addFreeStylePoints();
       _controller.offsets.clear();
-    } else if (_controller.start != null &&
-        _controller.end != null &&
-        _controller.mode != PaintMode.text) {
+    } else if (_controller.start != null && _controller.end != null && _controller.mode != PaintMode.text) {
       _addEndPoints();
     }
     _controller.resetStartAndEnd();
@@ -739,9 +734,7 @@ class ImagePainterState extends State<ImagePainter> {
     final painter = DrawImage(image: _image, controller: _controller);
     final size = Size(_image!.width.toDouble(), _image!.height.toDouble());
     painter.paint(canvas, size);
-    return recorder
-        .endRecording()
-        .toImage(size.width.floor(), size.height.floor());
+    return recorder.endRecording().toImage(size.width.floor(), size.height.floor());
   }
 
   PopupMenuItem _showOptionsRow() {
@@ -831,16 +824,14 @@ class ImagePainterState extends State<ImagePainter> {
   Future<Uint8List?> exportImage() async {
     late ui.Image _convertedImage;
     if (widget.isSignature) {
-      final _boundary = _repaintKey.currentContext!.findRenderObject()
-          as RenderRepaintBoundary;
+      final _boundary = _repaintKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
       _convertedImage = await _boundary.toImage(pixelRatio: 3);
     } else if (widget.byteArray != null && _controller.paintHistory.isEmpty) {
       return widget.byteArray;
     } else {
       _convertedImage = await _renderImage();
     }
-    final byteData =
-        await _convertedImage.toByteData(format: ui.ImageByteFormat.png);
+    final byteData = await _convertedImage.toByteData(format: ui.ImageByteFormat.png);
     return byteData?.buffer.asUint8List();
   }
 
@@ -886,9 +877,7 @@ class ImagePainterState extends State<ImagePainter> {
           AnimatedBuilder(
             animation: _controller,
             builder: (_, __) {
-              final icon = paintModes(textDelegate)
-                  .firstWhere((item) => item.mode == _controller.mode)
-                  .icon;
+              final icon = paintModes(textDelegate).firstWhere((item) => item.mode == _controller.mode).icon;
               return PopupMenuButton(
                 tooltip: textDelegate.changeMode,
                 shape: ContinuousRectangleBorder(
@@ -926,8 +915,7 @@ class ImagePainterState extends State<ImagePainter> {
             shape: ContinuousRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            icon:
-                widget.brushIcon ?? Icon(Icons.brush, color: Colors.grey[700]),
+            icon: widget.brushIcon ?? Icon(Icons.brush, color: Colors.grey[700]),
             itemBuilder: (_) => [_showRangeSlider()],
           ),
           AnimatedBuilder(
@@ -953,6 +941,106 @@ class ImagePainterState extends State<ImagePainter> {
               }
             },
           ),
+          IconButton(
+            icon: Icon(Icons.image, color: Colors.grey[700]),
+            onPressed: () async {
+              var kaydedilecekYol;
+
+              var dosya = await showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      titlePadding: EdgeInsets.zero,
+                      contentPadding: EdgeInsets.zero,
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.all(10),
+                            onTap: () async {
+                              //Navigator.pop(context);
+                              final img = await ImagePicker().pickImage(source: ImageSource.camera);
+
+                              if (img != null) {
+                                File f = File(img.path);
+                                // MemoryImage? cropResult = await Get.to(() => CropImageScreen(f.path));
+                                // LogHelper.log("CROP RESULT : $cropResult");
+                                // if (cropResult != null) {
+                                var dosyaAdi = "${const Uuid().v1()}.jpg"; //DateTime.now().toIso8601String().replaceAll("T","_").replaceAll(".","_").replaceAll(":", "")+"_EQ_${widget._ID}.jpg";
+                                var root = (await DirectoryHelper.getDir());
+                                var folder = "uploads/asset_photos";
+                                kaydedilecekYol = "$root/$dosyaAdi";
+                                // LogHelper.log(kaydedilecekYol);
+                                File file = File(kaydedilecekYol);
+
+                                await file.writeAsString(img.path, flush: true);
+                                // LogHelper.log("File Length : ${f.lengthSync()}");
+                                Navigator.pop(context, kaydedilecekYol);
+                                setState(() {});
+                                // }
+                              }
+                            },
+                            leading: const Icon(Icons.camera, size: 32),
+                            title: Text("Camera"),
+                          ),
+                          ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.all(10),
+                            onTap: () async {
+                              //Navigator.pop(context);
+
+                              final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+
+                              if (img != null) {
+                                File f = File(img.path);
+                                // MemoryImage? cropResult = await Get.to(() => CropImageScreen(f.path));
+                                // LogHelper.log("CROP RESULT : $cropResult");
+                                // if (cropResult != null) {
+                                var dosyaAdi = "${const Uuid().v1()}.jpg";
+                                var root = (await DirectoryHelper.getDir());
+                                var folder = "uploads/asset_photos";
+                                kaydedilecekYol = "$root/$dosyaAdi";
+                                // LogHelper.log(kaydedilecekYol);
+                                File file = File(kaydedilecekYol);
+                                await file.writeAsString(img.path, flush: true);
+                                // LogHelper.log("File Length : ${f.lengthSync()}");
+                                Navigator.pop(context, kaydedilecekYol);
+                                setState(() {});
+
+                                // }
+                              }
+                            },
+                            leading: const Icon(Icons.image_rounded, size: 32),
+                            title: Text("Pick Up Galery"),
+                          ),
+                        ],
+                      ),
+                    );
+                  });
+
+              var root = (await DirectoryHelper.getDir());
+
+              if (dosya != null) {
+                print(kaydedilecekYol);
+                ByteData img = await rootBundle.load(widget.assetPath!);
+                File imgFile = File(kaydedilecekYol);
+                File imgFile2 = File(kaydedilecekYol);
+                var res = await showDialog(
+                  builder: (context) {
+                    return AlertDialog(
+                        title: Text("Add second image"),
+                        content: Container(
+                          height: 500,
+                          width: 300,
+                          child: DragableResizableImage(image1: widget.assetPath!,image2: kaydedilecekYol,)));
+                  },
+                  context: context,
+                );
+                setState(() {});
+              }
+            },
+          ),
           const Spacer(),
           IconButton(
             tooltip: textDelegate.undo,
@@ -964,8 +1052,7 @@ class ImagePainterState extends State<ImagePainter> {
           ),
           IconButton(
             tooltip: textDelegate.clearAllProgress,
-            icon: widget.clearAllIcon ??
-                Icon(Icons.clear, color: Colors.grey[700]),
+            icon: widget.clearAllIcon ?? Icon(Icons.clear, color: Colors.grey[700]),
             onPressed: () {
               widget.onClear?.call();
               _controller.clear();
@@ -974,5 +1061,118 @@ class ImagePainterState extends State<ImagePainter> {
         ],
       ),
     );
+  }
+}
+
+const double dragWidgetSize = 30;
+
+class DragableResizableImage extends StatefulWidget {
+   DragableResizableImage({Key? key,required this.image1,required this.image2}) : super(key: key);
+  String image1;
+  var image2;
+
+  @override
+  State<DragableResizableImage> createState() => DdragableImageResizableState();
+}
+
+class DdragableImageResizableState extends State<DragableResizableImage> {
+  @override
+  Widget build(BuildContext context) {
+@override
+void initState() {
+  print(widget.image2);
+  super.initState();
+  
+}
+
+    return 
+  LayoutBuilder(
+        builder: (context, constraint) {
+          double areaHeight = constraint.maxHeight * 0.8;
+          double areaWidth = constraint.maxWidth * 0.8;
+
+          return Container(
+            width: constraint.maxWidth,
+            height: constraint.maxHeight,
+            decoration: BoxDecoration(
+            image: DecorationImage(image: AssetImage(widget.image1))
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  height: constraint.maxHeight * 0.8,
+                  width: constraint.maxWidth * 0.8,
+                  
+                  child: ResizableWidget(
+                    areaHeight: areaHeight,
+                    areaWidth: areaWidth,
+                    height: 250,
+                    width: 250,
+                    minHeight: 100,
+                    minWidth: 100,
+                    dragWidgetsArea: const Size.square(30 / 2),
+                    triggersList: DragTriggersEnum.values
+                        .map(
+                          (e) => Trigger(
+                            dragTriggerType: e,
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              decoration: const BoxDecoration(
+                                color: Colors.white38,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Colors.white,
+                          width: 2,
+                        ),
+                        
+                      ),
+                      child: 
+                      Container(
+                        height: 150,
+                        width: 100,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(image: FileImage(File(widget.image2.toString())))
+                        ),
+                      )
+                      // Stack(
+                      //   children: [
+                      //     Column(
+                      //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      //       children: List.generate(
+                      //         3,
+                      //         (index) => const Divider(
+                      //           color: Colors.white,
+                      //         ),
+                      //       ),
+                      //     ),
+                      //     Row(
+                      //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      //       children: List.generate(
+                      //         3,
+                      //         (index) => const VerticalDivider(
+                                
+                      //           color: Colors.white,
+                      //         ),
+                      //       ),
+                      //     ),
+                      //   ],
+                      // ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
   }
 }

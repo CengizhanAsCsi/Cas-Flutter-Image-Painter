@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_painter/image_painter.dart';
-import 'package:open_file/open_file.dart';
+// import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 
 class SignatureExample extends StatefulWidget {
@@ -52,13 +52,13 @@ class _SignatureExampleState extends State<SignatureExample> {
             children: [
               const Text("Image Exported successfully.",
                   style: TextStyle(color: Colors.white)),
-              TextButton(
-                onPressed: () => OpenFile.open("$fullPath"),
-                child: Text(
-                  "Open",
-                  style: TextStyle(color: Colors.blue[200]),
-                ),
-              )
+              // TextButton(
+              //   onPressed: () => OpenFile.open("$fullPath"),
+              //   child: Text(
+              //     "Open",
+              //     style: TextStyle(color: Colors.blue[200]),
+              //   ),
+              // )
             ],
           ),
         ),

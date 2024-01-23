@@ -11,3 +11,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  image_picker: ^0.8.6
+  uuid: ^3.0.7
+  path_provider: ^2.0.11
+  permission_handler: ^10.3.0
+  image: ^4.1.3
+  resizable_widget:
+    git:
+      url: https://github.com/zamaniafshar/Flutter-Resizable-Widget.git
+      ref: main # branch name
